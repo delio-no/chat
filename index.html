@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<!-- Подключение Bootstrap чтобы все выглядело красиво -->
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+	<title>Чат программа</title>
+	<!-- Свои стили -->
+	<style>
+		body {
+			background: #fcfcfc;
+		}
+	</style>
+</head>
+<body>
+	<!-- Основная часть страницы -->
+	<div class="container">
+		<div class="py-5 text-center">
+			<h2>Чат программа</h2>
+		</div>
+		<div class="row">
+			<div class="col-6">
+				<!-- Форма для получения сообщений и имени -->
+				<h3>Форма сообщений</h3>
+				<form id="messForm">
+					<label for="name">Имя</label>
+					<input type="text" name="name" id="name" placeholder="Введите имя" class="form-control">
+					<br>
+					<label for="message">Сообщение</label>
+					<textarea name="message" id="message" class="form-control" placeholder="Введите сообщение"></textarea>
+					<br>
+					<input type="submit" value="Отправить" class="btn btn-danger">
+				</form>
+			</div>
+			<div class="col-6">
+				<h3>Сообщения</h3>
+				<!-- Вывод всех сообщений будет здесь -->
+				<div id="all_mess"></div>
+			</div>
+		</div>
+	</div>
+	<!-- Подключаем jQuery, а также Socket.io -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<script>
+		// Функция для работы с данными на сайте
+		$(function() {
+			// Включаем socket.io и отслеживаем все подключения
+			var socket = io.connect();
+			// Делаем переменные на:
+			var $form = $("#messForm"); // Форму сообщений
+			var $name = $("#name"); // Поле с именем
+			var $textarea = $("#message"); // Текстовое поле
+			var $all_messages = $("#all_mess"); // Блок с сообщениями
+
+			// Отслеживаем нажатие на кнопку в форме сообщений
+			$form.submit(function(event) {
+				// Предотвращаем классическое поведение формы
+				event.preventDefault();
+				// В сокет отсылаем новое событие 'send mess',
+				// в событие передаем различные параметры и данные
+				socket.emit('send mess', {mess: $textarea.val(), name: $name.val()});
+				// Очищаем поле с сообщением
+				$textarea.val('');
+			});
+			
+
+			//Получаем массив с сообщениям и перебираем его добавляя сообщения на страницу
+			socket.on('output-messages', data => {
+    			console.log(data)
+    			if (data.length) {
+        			data.forEach(message => {
+            			$all_messages.append("<div class='alert alert-info'><b>" + message.username + "</b>: " + message.text + "</div>");
+        			});
+    			}
+			})
+			
+			socket.on('add-lastmsg', function(data) {
+				// Встраиваем полученное сообщение в блок с сообщениями
+				// У блока с сообщением будет тот класс, который соответвует пользователю что его отправил
+				console.log(data.result)
+				/* data.msg.forEach(element => {
+					$all_messages.append("<div class='alert alert-info'><b>" + element[0] + "</b>: " + element[1] + "</div>");
+				}); */
+
+				$all_messages.append("<div class='alert alert-info'><b>" + data.result + "</b>: " + data.mess + "</div>");
+			});
+
+
+			// Здесь отслеживаем событие 'add mess', 
+			// которое должно приходить из сокета в случае добавления нового сообщения
+			socket.on('add mess', function(data) {
+				// Встраиваем полученное сообщение в блок с сообщениями
+				// У блока с сообщением будет тот класс, который соответвует пользователю что его отправил
+				$all_messages.append("<div class='alert alert-info'><b>" + data.name + "</b>: " + data.mess + "</div>");
+			});
+
+		});
+	</script>
+</body>
+</html>
